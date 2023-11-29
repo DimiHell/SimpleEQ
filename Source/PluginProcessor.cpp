@@ -109,9 +109,22 @@ void SimpleEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
         chainSettings.peakFreq,
         chainSettings.peakQuality,
         juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
+    
 
     *LeftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
     *RightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+
+    auto lowCutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq,
+        sampleRate,
+        2 * (chainSettings.lowCutSlope) + 1);
+    auto& leftLowCut = LeftChain.get<ChainPositions::LowCut>();
+    leftLowCut.setBypassed<0>(true);
+    leftLowCut.setBypassed<1>(true);
+    leftLowCut.setBypassed<2>(true);
+    leftLowCut.setBypassed<3>(true);
+
+    *LeftChain.get<ChainPositions::LowCut>().coefficients = *lowCutCoefficients;
+    *RightChain.get<ChainPositions::LowCut>().coefficients = *lowCutCoefficients;
 
     
 }
@@ -168,9 +181,14 @@ void SimpleEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         chainSettings.peakFreq,
         chainSettings.peakQuality,
         juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
+    auto lowCutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq,
+        getSampleRate(),
+        2 * (chainSettings.lowCutSlope) + 1);
 
     *LeftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
     *RightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+    *LeftChain.get<ChainPositions::LowCut>().coefficients = *lowCutCoefficients;
+    *RightChain.get<ChainPositions::LowCut>().coefficients = *lowCutCoefficients;
 
     juce::dsp::AudioBlock<float> block(buffer);
     auto LeftBlock = block.getSingleChannelBlock(0);
